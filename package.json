@@ -1,0 +1,38 @@
+{
+  "name": "pen-battle",
+  "version": "2.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "npm run build:client && npm run build:server",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "npm run test:unit && npm run test:online",
+    "build:client": "tsc -b && vite build",
+    "build:server": "tsc -p tsconfig.server.json && node scripts/build-server.mjs",
+    "server": "node dist-server/index.mjs",
+    "server:dev": "node scripts/dev-server.mjs",
+    "test:unit": "node scripts/test.mjs",
+    "test:online": "node scripts/test-online.mjs"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^4.7.0",
+    "matter-js": "^0.20.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "socket.io": "^4.8.4",
+    "socket.io-client": "^4.8.4",
+    "typescript": "^5.6.0",
+    "vite": "^7.3.7"
+  },
+  "devDependencies": {
+    "@types/matter-js": "^0.19.7",
+    "@types/node": "^22.20.5",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "esbuild": "^0.28.2"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  }
+}
