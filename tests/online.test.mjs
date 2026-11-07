@@ -39,6 +39,12 @@ async function main(){try{
   await error(extra,'room:join',{code,nickname:'Fifth'},'room_full');assert.equal(server.rooms.get(code).slots.filter(Boolean).length,4);
   for(const m of members)assert.ok(!JSON.stringify(m.room).includes(m.credential));
  });
+ await group('Lobby hosts can remove players, revoke credentials and exclude them from room broadcasts',async()=>{
+  await error(a[1],'room:kick',{playerId:2},'host_only');await error(a[0],'room:kick',{playerId:0},'invalid_player');await error(a[0],'room:kick',{playerId:4},'invalid_player');
+  const oldCredential=members[2].credential;let removed=false;a[2].once('room:removed',()=>{removed=true;});await ok(a[0],'room:kick',{playerId:2});await until(()=>removed);assert.equal(server.rooms.get(members[0].room.code).slots[2],null);
+  await error(extra,'room:resume',{code:members[0].room.code,credential:oldCredential},'unauthorized');await error(a[2],'room:ready',{ready:true},'unauthorized');
+  members[2]=await ok(a[2],'room:join',{code:members[0].room.code,nickname:'玩家三'});assert.notEqual(members[2].credential,oldCredential);
+ });
  await group('Private reconnect identity reclaims a slot and replaces its previous active controller',async()=>{
   await error(extra,'room:resume',{code:members[0].room.code,credential:'x'.repeat(43)},'unauthorized');
   const replacement=await connect(),old=a[2];const reclaimed=await ok(replacement,'room:resume',{code:members[2].room.code,credential:members[2].credential});assert.equal(reclaimed.playerId,2);await until(()=>!old.connected);a[2]=replacement;members[2]=reclaimed;assert.equal(server.rooms.get(reclaimed.room.code).slots.filter(Boolean).length,4);
@@ -48,6 +54,10 @@ async function main(){try{
   await error(extra,'room:join',{code:members[0].room.code,nickname:'Late'},'match_started');
   b=[await connect(),await connect(),await connect(),await connect()];bMembers[0]=await ok(b[0],'room:create',{nickname:'Host B',mode:'evolution'});assert.notEqual(bMembers[0].room.code,members[0].room.code);
   for(let i=1;i<4;i++)bMembers[i]=await ok(b[i],'room:join',{code:bMembers[0].room.code,nickname:`B ${i}`});await readyStart(b);assert.ok(latest.get(b[0]).state.players.every(p=>p.penType==='wooden'));
+ });
+ await group('Idle matches do not simulate or repeatedly broadcast unchanged snapshots',async()=>{
+  const core=scene(members[0]),tick=core.simulationTick,count=allFrames.get(a[0]).length;await delay(150);assert.equal(core.simulationTick,tick);assert.equal(allFrames.get(a[0]).length,count);
+  await error(a[0],'room:kick',{playerId:1},'match_started');
  });
  await group('Unauthorized, wrong-room, wrong-turn, stale, malformed and forged action payloads are rejected',async()=>{
   const f=latest.get(a[0]),base=intent(members[0],f,{kind:'shake'});
@@ -98,6 +108,16 @@ async function main(){try{
  await group('Abandoned rooms expire distinctly; payload limits and rate limits do not crash the server',async()=>{
   const lonely=await connect(),membership=await ok(lonely,'room:create',{nickname:'Lonely',mode:'classic'});lonely.disconnect();await until(()=>server.rooms.get(membership.room.code).slots[0]?.connected===false);clockSkew+=5000;await until(()=>!server.rooms.has(membership.room.code));const probe=await connect();await error(probe,'room:join',{code:membership.room.code,nickname:'Late'},'room_expired');
   for(let i=0;i<5;i++)await call(probe,'room:create',null);await error(probe,'room:create',null,'rate_limited');assert.equal((await fetch(url+'/health')).status,200);
+ });
+ await group('Room and connection limits return friendly capacity errors and free capacity after disconnect',async()=>{
+  const limited=new BattleServer({maxRooms:1,maxConnections:3,roomTtlMs:50});const sockets=[];
+  try{
+   const port=await limited.listen(0,'127.0.0.1'),base=`http://127.0.0.1:${port}`;
+   async function client(){const s=io(base,{forceNew:true,transports:['websocket'],reconnection:false});sockets.push(s);await new Promise((resolve,reject)=>{s.once('connect',resolve);s.once('connect_error',reject);});return s;}
+   const host=await client(),guest=await client();await ok(host,'room:create',{nickname:'Host',mode:'classic'});await error(guest,'room:create',{nickname:'Guest',mode:'classic'},'server_busy');await client();
+   const overflow=io(base,{forceNew:true,transports:['websocket'],reconnection:false});sockets.push(overflow);const full=await new Promise(resolve=>overflow.once('server:full',resolve));assert.match(full.message,/已满/);
+   await ok(host,'room:leave',{});await until(()=>limited.rooms.size===0);await ok(guest,'room:create',{nickname:'Guest',mode:'classic'});
+  }finally{for(const s of sockets)s.disconnect();await limited.close();}
  });
  console.log(`${groups} real online integration groups passed (two rooms, four clients per match).`);
 }finally{for(const client of clients)client.disconnect();await server.close();}

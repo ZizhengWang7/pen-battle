@@ -9,9 +9,17 @@ export function finite(value:unknown,min:number,max:number):value is number{retu
 export function point(raw:unknown):{x:number;y:number}{const p=object(raw,['x','y']);requireThat(finite(p.x,-1000,1500)&&finite(p.y,-1000,1500),'invalid_point','接触位置不正确');return {x:p.x,y:p.y};}
 export class RateLimits {
  private buckets=new Map<string,{count:number;until:number}>();
+ private nextSweep=0;
+ constructor(private capacity=10000){}
+ get size(){return this.buckets.size;}
+ forgetPrefix(prefix:string){for(const key of this.buckets.keys())if(key.startsWith(prefix))this.buckets.delete(key);}
  allow(key:string,maximum:number,windowMs:number,now=Date.now()):boolean {
-  let bucket=this.buckets.get(key);if(!bucket||now>=bucket.until){bucket={count:0,until:now+windowMs};this.buckets.set(key,bucket);}bucket.count++;
-  if(this.buckets.size>1000)for(const [k,v] of this.buckets)if(now>=v.until)this.buckets.delete(k);
-  return bucket.count<=maximum;
+  if(now>=this.nextSweep){for(const [k,v] of this.buckets)if(now>=v.until)this.buckets.delete(k);this.nextSweep=now+1000;}
+  let bucket=this.buckets.get(key);
+  if(!bucket||now>=bucket.until){
+   if(!bucket&&this.buckets.size>=this.capacity)return false;
+   bucket={count:0,until:now+windowMs};this.buckets.set(key,bucket);
+  }
+  bucket.count++;return bucket.count<=maximum;
  }
 }

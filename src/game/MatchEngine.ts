@@ -36,6 +36,8 @@ export class MatchEngine {
   constructor(options:{mode?:GameMode;seed?:number}={},onChange:(s:GameSnapshot)=>void=()=>{}){
     this.onChange=onChange;this.reset(options.mode??'classic',options.seed??1);
   }
+  get status(){return this.phase;}
+  get needsStep(){return !['waiting','aiming','finished'].includes(this.phase)||this.respawnGlows.size>0;}
   snapshot():GameSnapshot{return {...structuredClone(this.match),alive:this.pens.map(p=>p.alive),shakeCharges:this.match.players.map(p=>p.shakeCharge),canShake:this.canShake(this.current)};}
   protected emit(){this.onChange(this.snapshot());}
   reset(mode:GameMode=this.match.mode,seed=this.match.seed){

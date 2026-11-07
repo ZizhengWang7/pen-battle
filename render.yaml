@@ -1,0 +1,31 @@
+# Creation requires the owner's approval. This file alone creates no resources.
+services:
+  - type: web
+    name: pen-battle
+    runtime: node
+    plan: free
+    region: oregon
+    numInstances: 1
+    repo: https://github.com/ZizhengWang7/pen-battle
+    branch: main
+    buildCommand: npm ci && npm run build
+    startCommand: npm run server
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NPM_CONFIG_INCLUDE
+        value: dev
+      - key: HOST
+        value: 0.0.0.0
+      - key: MAX_ACTIVE_ROOMS
+        value: "5"
+      - key: MAX_CONNECTIONS
+        value: "24"
+      - key: ROOM_TTL_MS
+        value: "600000"
+      - key: RECONNECT_GRACE_MS
+        value: "60000"
+# Render supplies PORT and RENDER_EXTERNAL_URL. The latter is the exact allowed
+# production browser origin. No localhost URL or private credential is needed.

@@ -14,7 +14,7 @@ export const PEN_CLASSES:Record<PenType,PenClass>={
  fountain:{id:'fountain',name:'金属钢笔',mass:8.8,outline:outline([[-58,-3],[-54,-7],[-38,-8],[24,-8],[40,-5],[56,0],[40,5],[24,8],[-38,8],[-54,7],[-58,3]]),coreFraction:.8,weights:[{fraction:.1,position:{x:-42,y:0}},{fraction:.1,position:{x:40,y:0}}],friction:.25,linearDrag:2.45,sliding:.04,angularDrag:2.8,spinDrag:6},
 };
 export const PEN_TYPES=Object.keys(PEN_CLASSES) as PenType[];
-export function penGeometry(type:PenType){
+function computeGeometry(type:PenType){
  const p=PEN_CLASSES[type],geometricCenter=Matter.Vertices.centre(p.outline);
  const center={x:geometricCenter.x*p.coreFraction,y:geometricCenter.y*p.coreFraction};
  for(const weight of p.weights){center.x+=weight.position.x*weight.fraction;center.y+=weight.position.y*weight.fraction;}
@@ -25,4 +25,8 @@ export function penGeometry(type:PenType){
  const vertices=p.outline.map(v=>Matter.Vector.sub(v,center));
  return {center,geometricCenter,vertices,inertia,radius:Math.max(...vertices.map(v=>Math.hypot(v.x,v.y)))};
 }
+// These model-space integrals are immutable during a match; avoid recalculating
+// them for every rotating tip, hit test and render frame.
+const geometries=new Map<PenType,ReturnType<typeof computeGeometry>>();
+export function penGeometry(type:PenType){let geometry=geometries.get(type);if(!geometry){geometry=computeGeometry(type);geometries.set(type,geometry);}return geometry;}
 export function bodyPenType(body:Matter.Body):PenType{return body.plugin.penType??'ballpoint';}

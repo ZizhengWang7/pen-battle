@@ -1,6 +1,6 @@
 {
   "name": "pen-battle",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,7 +13,9 @@
     "server": "node dist-server/index.mjs",
     "server:dev": "node scripts/dev-server.mjs",
     "test:unit": "node scripts/test.mjs",
-    "test:online": "node scripts/test-online.mjs"
+    "test:online": "node scripts/test-online.mjs",
+    "test:load": "node scripts/load-test.mjs",
+    "test:browser": "node scripts/browser-smoke.mjs"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.7.0",
@@ -33,6 +35,6 @@
     "esbuild": "^0.28.2"
   },
   "engines": {
-    "node": ">=22.13.0"
+    "node": ">=22.13.0 <23"
   }
 }

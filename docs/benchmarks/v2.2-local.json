@@ -1,0 +1,111 @@
+{
+  "recordedAt": "2026-11-07T19:05:08.281Z",
+  "environment": {
+    "node": "v22.13.1",
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M3",
+    "logicalCpus": 8
+  },
+  "cyclesPerRoom": 8,
+  "scope": "Isolated loopback Socket.IO server in its own child process; no production traffic. Server CPU and RSS only. All clients share loopback IP, so join/create rate limits are raised for this test. No gameplay/identity validation is disabled.",
+  "scenarios": [
+    {
+      "rooms": 5,
+      "concurrentPlayers": 20,
+      "actions": 120,
+      "shakes": 20,
+      "reconnects": 5,
+      "requests": 170,
+      "connectionAttempts": 25,
+      "ackLatencyMs": {
+        "p50": 2.5990829999991547,
+        "p95": 5.678916000000072,
+        "p99": 6.9236250000003565
+      },
+      "durationMs": 33375.144084,
+      "cpuPercentOneCore": 7.525495601393011,
+      "peakCpuPercentOneCore": 40.86404329679291,
+      "peakRssMiB": 69,
+      "eventLoopDelayMs": {
+        "mean": 11.224097765814268,
+        "p95": 12.697599,
+        "p99": 14.442495,
+        "max": 23.117823
+      },
+      "errorCount": 0,
+      "errorRate": 0,
+      "unexpectedDisconnects": 0,
+      "inconsistentSnapshots": 0,
+      "wrongRoomSnapshots": 0,
+      "commonSequences": 3106,
+      "idleSnapshots": 0,
+      "totalSnapshots": 12439
+    },
+    {
+      "rooms": 10,
+      "concurrentPlayers": 40,
+      "actions": 240,
+      "shakes": 40,
+      "reconnects": 10,
+      "requests": 340,
+      "connectionAttempts": 50,
+      "ackLatencyMs": {
+        "p50": 2.675541999997222,
+        "p95": 8.407208999997238,
+        "p99": 181.67575000000215
+      },
+      "durationMs": 33585.3245,
+      "cpuPercentOneCore": 9.329893477730131,
+      "peakCpuPercentOneCore": 40.729592246691666,
+      "peakRssMiB": 68.75,
+      "eventLoopDelayMs": {
+        "mean": 11.04612555182626,
+        "p95": 12.754943,
+        "p99": 17.350655,
+        "max": 194.248703
+      },
+      "errorCount": 0,
+      "errorRate": 0,
+      "unexpectedDisconnects": 0,
+      "inconsistentSnapshots": 0,
+      "wrongRoomSnapshots": 0,
+      "commonSequences": 6236,
+      "idleSnapshots": 0,
+      "totalSnapshots": 24974
+    },
+    {
+      "rooms": 25,
+      "concurrentPlayers": 100,
+      "actions": 600,
+      "shakes": 100,
+      "reconnects": 25,
+      "requests": 850,
+      "connectionAttempts": 125,
+      "ackLatencyMs": {
+        "p50": 4.6950420000066515,
+        "p95": 13.87575000000652,
+        "p99": 15.658207999993465
+      },
+      "durationMs": 33768.187458,
+      "cpuPercentOneCore": 13.552542628152807,
+      "peakCpuPercentOneCore": 77.10871507317162,
+      "peakRssMiB": 79.75,
+      "eventLoopDelayMs": {
+        "mean": 10.860895299871299,
+        "p95": 13.647871,
+        "p99": 17.039359,
+        "max": 61.407231
+      },
+      "errorCount": 0,
+      "errorRate": 0,
+      "unexpectedDisconnects": 0,
+      "inconsistentSnapshots": 0,
+      "wrongRoomSnapshots": 0,
+      "commonSequences": 15553,
+      "idleSnapshots": 0,
+      "totalSnapshots": 62287
+    }
+  ],
+  "serverSourceSha256": "74f241de7ba98c9696a6d5cfbe7ee721ed05a1a648179d5519b6058bdb666190"
+}

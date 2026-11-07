@@ -9,7 +9,7 @@ function PenIcon({type}:{type:PenType}){
  const p=PEN_CLASSES[type],colors={wooden:'#dbb36b',mechanical:'#ccdce1',ballpoint:'#b8c4ca',highlighter:'#d8e66c',fountain:'#334655'};
  return <svg className="pen-icon" viewBox="-100 -18 200 36" aria-hidden="true"><polygon points={p.outline.map(v=>`${v.x},${v.y}`).join(' ')} fill={colors[type]} stroke="#ffffff55" strokeWidth="1.2"/><path d="M -38 -3 L 22 -3" stroke="#fff9" strokeWidth="2"/>{type==='fountain'&&<path d="M 35 -6 L 56 0 L 35 6 Z" fill="#e8cc8a"/>}</svg>;
 }
-function Header(){return <header><div className="eyebrow">PEN BATTLE · V2.1</div><h1>弹笔大战</h1><p>真实弹笔 · 四人同桌 · 进化竞技场</p></header>;}
+function Header(){return <header><div className="eyebrow">PEN BATTLE · V2.2</div><h1>弹笔大战</h1><p>真实弹笔 · 四人同桌 · 进化竞技场</p></header>;}
 function ModeSelection({onStart,onExit}:{onStart:(mode:GameMode,seed:number)=>void;onExit:()=>void}){
  const [seed,setSeed]=useState(String(Date.now()>>>0));
  const start=(mode:GameMode)=>onStart(mode,Number(seed)>>>0);

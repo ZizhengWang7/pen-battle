@@ -1,6 +1,7 @@
 import {BattleServer} from './service';
-try{process.loadEnvFile?.();}catch{/* Environment variables may be supplied directly by the host. */}
-const positive=(name:string,fallback:number)=>{const n=Number(process.env[name]);return Number.isFinite(n)&&n>0?n:fallback;};
-const server=new BattleServer({origins:(process.env.FRONTEND_ORIGINS??'http://localhost:5173,http://127.0.0.1:5173,http://localhost:3001,http://127.0.0.1:3001').split(',').map(s=>s.trim()),roomTtlMs:positive('ROOM_TTL_MS',600000),graceMs:positive('RECONNECT_GRACE_MS',60000)});
-server.listen(positive('PORT',3001),process.env.HOST??'0.0.0.0').then(port=>console.log(`Pen Battle server listening on ${port}`)).catch(error=>{console.error('Could not start server:',error.message);process.exitCode=1;void server.close();});
-for(const signal of ['SIGTERM','SIGINT'] as const)process.once(signal,()=>{void server.close().then(()=>process.exit(0));});
+import {allowedOrigins,positiveInt} from './config';
+try{process.loadEnvFile?.();}catch{/* Hosting environments supply variables directly. */}
+const server=new BattleServer({origins:allowedOrigins(process.env),roomTtlMs:positiveInt(process.env.ROOM_TTL_MS,600000),graceMs:positiveInt(process.env.RECONNECT_GRACE_MS,60000),maxRooms:positiveInt(process.env.MAX_ACTIVE_ROOMS,25,500),maxConnections:positiveInt(process.env.MAX_CONNECTIONS,120,2000)});
+server.listen(positiveInt(process.env.PORT,3001,65535),process.env.HOST??'0.0.0.0').then(port=>console.log(`Pen Battle server listening on ${port}`)).catch(error=>{console.error('Could not start server:',error.message);process.exitCode=1;void server.close();});
+let shuttingDown=false;
+for(const signal of ['SIGTERM','SIGINT'] as const)process.once(signal,()=>{if(shuttingDown)return;shuttingDown=true;const timeout=setTimeout(()=>process.exit(1),10000);timeout.unref();void server.close().then(()=>process.exit(0));});
