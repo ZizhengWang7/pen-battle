@@ -1,8 +1,8 @@
-# Proposed Render deployment
+# Render deployment
 
-No service has been created. The owner explicitly requires approval before cloud creation.
+The owner approved the Free configuration, and the service is now publicly reachable at **https://pen-battle.onrender.com**. HTTPS, secure WebSockets, and small four-player functional games have been verified. The table below records the approved repository configuration; private Render account settings and logs have not been inspected.
 
-| Setting | Proposed value |
+| Setting | Approved repository value |
 |---|---|
 | Repository | https://github.com/ZizhengWang7/pen-battle |
 | Branch | `main` |
@@ -29,15 +29,15 @@ The frontend uses its own origin. The backend derives its exact allowed producti
 
 Render terminates HTTPS and forwards HTTP/WebSocket traffic to the same Node port. See its [Web Service](https://render.com/docs/web-services), [WebSocket](https://render.com/docs/websocket), [Node version](https://render.com/docs/node-version), and [Blueprint](https://render.com/docs/blueprint-spec) documentation.
 
-## Approval and authorization
+## Existing service and redeploys
 
-1. Approve the exact Free-service configuration above.
-2. Authorize the Render integration, or sign in at the Render Dashboard and grant access to this existing GitHub repository.
-3. Review `render.yaml` using **New → Blueprint** with branch `main`. Confirm the proposed service is Free and uses one instance before applying it. Alternatively, create one Web Service with the identical settings.
-4. If Render asks for a paid plan, payment, or additional resource, stop. Check workspace billing/spending controls: Free services can still have bandwidth/build quotas. Do not enable paid upgrades or overages for this release.
-5. Once created, inspect build/runtime logs and share the actual service URL so the live checks can run. No secret token needs to be pasted into chat.
+Use the existing `pen-battle` service; do not create a duplicate. The repository's `render.yaml` requests automatic deployments from `main`. No paid resource or domain was created by this verification work.
 
-The Render integration is discoverable but was not connected during preparation. GitHub publication does not itself create a Render service.
+Public service: https://pen-battle.onrender.com. Health endpoint: https://pen-battle.onrender.com/health.
+
+A small static marker at `/releases/v2.2-production-check.json` accompanies the production documentation update. It was absent before the push. Checking that its exact committed contents appear on the live origin, followed by a healthy homepage and `/health`, verifies that the new source has rolled out without relying on an old healthy instance. It contains no credential or private server data.
+
+The Render integration remains unauthorized in this environment. Build/runtime dashboard logs, billing settings and exact live environment values therefore remain uninspected. The public rollout check is separate from those control-plane checks.
 
 ## Verify after deployment
 
@@ -47,7 +47,7 @@ Run the small functional browser smoke check against the actual HTTPS origin, no
 SMOKE_URL="$VERIFIED_RENDER_URL" npm run test:browser
 ```
 
-Set `VERIFIED_RENDER_URL` to the allocated HTTPS origin before running that command; no public origin has been allocated yet. Verify `/health`, assets, room-link refresh, secure WebSocket transport, four-player actions, both modes, scoring, upgrades, respawns, a consistent winner, invalid-action rejection and rematches. Record evidence in [live-verification.md](live-verification.md). Only then add the real **Live Demo** link to the root README and push the documentation update.
+Set `VERIFIED_RENDER_URL=https://pen-battle.onrender.com` before running that command. Verify `/health`, assets, room-link refresh, secure WebSocket transport, four-player actions, both modes, scoring, upgrades, respawns, a consistent winner, invalid-action rejection and rematches. Record evidence in [live-verification.md](live-verification.md). The root README now links to the verified service. Record any later verification against its actual deployed revision.
 
 Do not run the load suite against production. It deliberately starts its own loopback server and cannot target an arbitrary URL.
 

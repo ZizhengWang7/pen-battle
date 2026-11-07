@@ -1,0 +1,6 @@
+{
+  "release": "2.2.0",
+  "documentationVerification": "2026-11-07T19:51:16.553845Z",
+  "verifiedGameSourceCommit": "75d9857e0051fc4475cf5859735341caa7a40e7b",
+  "purpose": "Public, non-secret marker for verifying the automatic rollout of the production documentation update."
+}

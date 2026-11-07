@@ -1,5 +1,7 @@
 # Pen Battle
 
+**Live Demo:** [https://pen-battle.onrender.com](https://pen-battle.onrender.com)
+
 Pen Battle is a four-player tabletop game. Flick your pen, knock the others off the wooden desk, and try to keep yours on it. Play on one screen or join friends online with a nickname and a six-character room code—no account needed.
 
 ## How to play
@@ -68,11 +70,11 @@ The load suite uses a separate server process and four independent Socket.IO cli
 
 ## Render deployment
 
-[`render.yaml`](render.yaml) proposes **one Free Node Web Service**, from `main`, serving HTTP and WebSockets on the same origin. Build: `npm ci && npm run build`; start: `npm run server`; health check: `/health`. Render's public URL is used as the exact allowed browser origin.
+[`render.yaml`](render.yaml) defines **one Free Node Web Service**, from `main`, serving HTTP and WebSockets on the same origin. Build: `npm ci && npm run build`; start: `npm run server`; health check: `/health`. Render's public URL is used as the exact allowed browser origin.
 
-The proposed public limits are five rooms and 24 connections; local defaults are 25 rooms and 120 connections. Both are configurable. See [deployment and approval details](docs/deployment.md).
+The deployment template sets five rooms and 24 connections; local defaults are 25 rooms and 120 connections. Both are configurable. See [deployment details](docs/deployment.md).
 
-**Public deployment is awaiting owner approval and Render authorization. No live URL has been verified yet.** The [public verification checklist](docs/live-verification.md) distinguishes live checks from local tests.
+Four independent browser sessions verified HTTPS/WSS, room links, joins, readiness, flicks, Table Shake, and reconnects on the public service. Additional four-client games verified scoring, upgrades, respawns, and the self-elimination penalty. See the [production verification record](docs/live-verification.md) for the checks performed and the checks not exercised. No production load test was run.
 
 ## Current limitations
 
