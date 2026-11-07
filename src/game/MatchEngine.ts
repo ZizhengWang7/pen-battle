@@ -32,9 +32,11 @@ export class MatchEngine {
   protected onAction:(()=>void)|undefined;
   protected onChange:(state:GameSnapshot)=>void;
   protected movingTime=0;
+  private playerCount:2|3|4;
+  private randomizeTurns:boolean;
   simulationTick=0;
-  constructor(options:{mode?:GameMode;seed?:number}={},onChange:(s:GameSnapshot)=>void=()=>{}){
-    this.onChange=onChange;this.reset(options.mode??'classic',options.seed??1);
+  constructor(options:{mode?:GameMode;seed?:number;playerCount?:2|3|4;randomizeTurns?:boolean}={},onChange:(s:GameSnapshot)=>void=()=>{}){
+    this.onChange=onChange;this.playerCount=options.playerCount??4;this.randomizeTurns=options.randomizeTurns??false;this.reset(options.mode??'classic',options.seed??1);
   }
   get status(){return this.phase;}
   get needsStep(){return !['waiting','aiming','finished'].includes(this.phase)||this.respawnGlows.size>0;}
@@ -43,10 +45,10 @@ export class MatchEngine {
   reset(mode:GameMode=this.match.mode,seed=this.match.seed){
     this.onReset?.();this.simulationTick=0;this.flick=null;this.strike=null;this.shakeElapsed=null;this.settledTime=0;this.phaseTime=0;
     this.upgrades=[];this.upgraded=false;this.respawnRetry=0;this.respawnGlows.clear();
-    this.match=createMatch(mode,seed);startMatch(this.match);Composite.clear(this.engine.world,false);
-    const positions=[[105,165],[295,165],[105,455],[295,455]];
+    this.match=createMatch(mode,seed,this.playerCount,this.randomizeTurns);startMatch(this.match);Composite.clear(this.engine.world,false);
+    const positions=this.playerCount===2?[[105,310],[295,310]]:this.playerCount===3?[[200,170],[79,380],[321,380]]:[[105,165],[295,165],[105,455],[295,455]];
     this.pens=this.match.players.map(player=>{
-      const [x,y]=positions[player.id];const angle=mode==='evolution'?Math.PI/2:(player.id%2===0?.27:-.27);
+      const [x,y]=positions[player.id];const angle=this.playerCount<4?Math.PI/2:mode==='evolution'?Math.PI/2:(player.id%2===0?.27:-.27);
       const body=createPenBody(x,y,angle,player.penType);Composite.add(this.engine.world,body);
       return {body,id:player.id,get alive(){return player.alive;},set alive(value:boolean){player.alive=value;},fall:null};
     });this.movingTime=0;this.emit();

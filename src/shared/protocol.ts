@@ -12,7 +12,8 @@ export interface SceneFrame {
 }
 export interface NetworkFrame extends SceneFrame {matchId:string;sequence:number;tick:number;serverTime:number;paused:boolean;}
 export interface RoomPlayer {id:PlayerId;nickname:string;host:boolean;connected:boolean;ready:boolean;}
-export interface RoomView {code:string;mode:GameMode;status:'lobby'|'playing'|'finished';players:RoomPlayer[];hostId:PlayerId;canStart:boolean;paused:boolean;disconnectDeadline:number|null;message:string;matchId:string|null;}
+export type RoomCapacity=2|3|4;
+export interface RoomView {code:string;maxPlayers:RoomCapacity;mode:GameMode;status:'lobby'|'playing'|'finished';players:RoomPlayer[];hostId:PlayerId;canStart:boolean;paused:boolean;disconnectDeadline:number|null;message:string;matchId:string|null;}
 export type ActionIntent={roomCode:string;matchId:string;turn:number;actionId:string}&({kind:'flick';contact:Point;direction:Point;power:number}|{kind:'shake'});
 export type Reply<T>={ok:true;data:T}|{ok:false;error:{code:string;message:string}};
 export interface Membership {room:RoomView;playerId:PlayerId;credential:string;frame?:NetworkFrame;}

@@ -4,10 +4,10 @@ import {PEN_CLASSES} from './pens';
 export const WIN_SCORE=5;
 export function seededRandom(seed:number){let value=seed>>>0;return ()=>{value+=0x6D2B79F5;let t=value;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return ((t^(t>>>14))>>>0)/4294967296;};}
 export function shuffled<T>(values:readonly T[],random:()=>number):T[]{const result=[...values];for(let i=result.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[result[i],result[j]]=[result[j],result[i]];}return result;}
-export function createMatch(mode:GameMode='classic',seed=1):MatchState {
- const random=seededRandom(seed),ids:PlayerId[]=[0,1,2,3];
+export function createMatch(mode:GameMode='classic',seed=1,playerCount:2|3|4=4,randomizeTurns=false):MatchState {
+ const random=seededRandom(seed),ids:PlayerId[]=([0,1,2,3] as PlayerId[]).slice(0,playerCount);
  const progression:PenType[]=['wooden',...shuffled<PenType>(['mechanical','ballpoint','highlighter','fountain'],random)];
- const turnOrder=mode==='classic'?ids:shuffled(ids,random);
+ const turnOrder=mode==='classic'&&!randomizeTurns?ids:shuffled(ids,random);
  return {mode,seed:seed>>>0,players:ids.map((id)=>({id,name:['蓝色玩家','红色玩家','绿色玩家','黄色玩家'][id],penType:mode==='classic'?'ballpoint':'wooden',score:0,stage:0,shakeCharge:1,alive:true,respawn:'active'})),turnOrder,currentPlayer:turnOrder[0],turn:1,phase:'waiting',progression,activeAction:null,nextActionId:1,winner:null,notices:[]};
 }
 export function canAct(state:MatchState,playerId:PlayerId){return state.phase==='aiming'&&state.currentPlayer===playerId&&state.activeAction===null&&!!state.players[playerId]?.alive&&state.players[playerId]?.respawn==='active';}

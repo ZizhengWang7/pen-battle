@@ -23,3 +23,5 @@ export class RateLimits {
   bucket.count++;return bucket.count<=maximum;
  }
 }
+
+export function capacity(value:unknown):2|3|4 {requireThat(value===2||value===3||value===4,'invalid_capacity','房间人数必须为 2、3 或 4');return value;}

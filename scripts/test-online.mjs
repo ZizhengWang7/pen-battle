@@ -5,7 +5,9 @@ import {join,resolve} from 'node:path';
 import {spawnSync} from 'node:child_process';
 const dir=await mkdtemp(join(tmpdir(),'pen-online-'));
 try{
- const result=await build({entryPoints:['tests/online.test.mjs'],bundle:true,packages:'external',platform:'node',format:'cjs',write:false});
+ for(const entry of (process.argv.includes('--rooms')?['tests/room-sizes-online.test.mjs']:['tests/online.test.mjs','tests/room-sizes-online.test.mjs'])){
+ const result=await build({entryPoints:[entry],bundle:true,packages:'external',platform:'node',format:'cjs',write:false});
  const file=join(dir,'online.cjs');await writeFile(file,result.outputFiles[0].contents);
- const run=spawnSync(process.execPath,[file],{stdio:'inherit',timeout:90000,env:{...process.env,NODE_PATH:resolve('node_modules')}});if(run.error)console.error(run.error.message);process.exitCode=run.status??1;
+ const run=spawnSync(process.execPath,[file],{stdio:'inherit',timeout:90000,env:{...process.env,NODE_PATH:resolve('node_modules')}});if(run.error)console.error(run.error.message);if(run.status!==0){process.exitCode=run.status??1;break;}
+ }
 }finally{await rm(dir,{recursive:true,force:true});}

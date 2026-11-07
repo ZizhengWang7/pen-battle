@@ -2,13 +2,13 @@
 
 **Live Demo:** [https://pen-battle.onrender.com](https://pen-battle.onrender.com)
 
-Pen Battle is a four-player tabletop game. Flick your pen, knock the others off the wooden desk, and try to keep yours on it. Play on one screen or join friends online with a nickname and a six-character room code—no account needed.
+Pen Battle is a tabletop game for 2–4 players online, or four players on one screen. Flick your pen, knock the others off the wooden desk, and try to keep yours on it. Play on one screen or join friends online with a nickname and a six-character room code—no account needed.
 
 ## How to play
 
 Press anywhere on your pen, drag backward, and release. A flick near the tip or tail creates rotation; a centered flick mostly slides. The hand animation reaches the chosen point before the impulse is applied.
 
-- **Classic:** four metal ballpoints, permanent elimination, last pen standing wins.
+- **Classic:** one metal ballpoint per player, permanent elimination, last pen standing wins.
 - **Evolution Arena:** start with a wooden pencil and earn upgrades by eliminating opponents. Everyone shares one seeded progression through five pen types. Eliminated players respawn; five credited eliminations wins.
 - **Self-elimination:** in Evolution, your own action knocking your pen off costs one upgrade stage, after earned upgrades. Your score stays unchanged. Stage zero cannot drop further.
 - **Table Shake:** once per player per game, grip your pen and strike the desk instead of flicking. Pens whose centers are in the outer 5% edge zone fall—including your own.
@@ -49,9 +49,9 @@ Open `http://localhost:3001`. This one process serves the frontend, room links, 
 
 ## Online rooms
 
-Choose **在线游戏**, create a room, and share its invitation link. Friends enter distinct nicknames and join by code. The host selects the mode; four connected players must ready up before starting. The host can remove lobby players, which invalidates their old reconnect credentials.
+Choose **在线游戏**, create a room, and share its invitation link. Friends enter distinct nicknames and join by code. Before creating a room, the host selects Classic or Evolution and a capacity of 2, 3, or 4 players (default 4). Capacity is locked for that room, including rematches. Exactly that many connected players must ready up before the host can start. The lobby shows the occupied and total slots. The host can remove lobby players, which invalidates their old reconnect credentials.
 
-Use different devices, browsers, or isolated profiles when testing four players. Tabs sharing browser storage represent the same saved identity; reclaiming a slot disconnects its previous controller. Refreshing a room link reclaims that slot using the private credential stored on the device.
+Use different devices, browsers, or isolated profiles when testing multiple players. Tabs sharing browser storage represent the same saved identity; reclaiming a slot disconnects its previous controller. Refreshing a room link reclaims that slot using the private credential stored on the device.
 
 For LAN play, bind `HOST=0.0.0.0` and add the exact LAN frontend origin to `FRONTEND_ORIGINS`. Other devices must use the host computer's LAN address, not `localhost`.
 
@@ -60,10 +60,11 @@ The server owns physics, actions, scores, upgrades, charges, respawns, and turns
 ## Tests and performance
 
 ```sh
-npm test                    # physics/rules + real four-client integration tests
+npm test                    # physics/rules + real 2/3/4-client integration tests
 npm run build               # frontend and typed Node server
 npm run test:load            # isolated local 5/10/25-room benchmarks
-npm run test:browser         # optional: requires Chrome and a local server
+SMOKE_URL=http://127.0.0.1:3001 SMOKE_PLAYERS=2 npm run test:browser -- --gameplay
+# Requires Chrome + the production server above. Repeat with SMOKE_PLAYERS=3 and 4.
 ```
 
 The load suite uses a separate server process and four independent Socket.IO clients per room. It measures server CPU/RSS, action acknowledgement latency, event-loop delay, reconnects, and snapshot consistency. See [measured results](docs/benchmarks/README.md) and [raw data](docs/benchmarks/v2.2-local.json). Local results are not a claim of equal capacity on Render Free.
@@ -74,7 +75,7 @@ The load suite uses a separate server process and four independent Socket.IO cli
 
 The deployment template sets five rooms and 24 connections; local defaults are 25 rooms and 120 connections. Both are configurable. See [deployment details](docs/deployment.md).
 
-Four independent browser sessions verified HTTPS/WSS, room links, joins, readiness, flicks, Table Shake, and reconnects on the public service. Additional four-client games verified scoring, upgrades, respawns, and the self-elimination penalty. See the [production verification record](docs/live-verification.md) for the checks performed and the checks not exercised. No production load test was run.
+The V2.2 release used four independent browser sessions to verify HTTPS/WSS, room links, joins, readiness, flicks, Table Shake, and reconnects on the public service. Additional four-client games verified scoring, upgrades, respawns, and the self-elimination penalty. See the [production verification record](docs/live-verification.md) for the checks performed and the checks not exercised. No production load test was run. See [V2.3 room sizes and verification](docs/v2.3-room-sizes.md) for the new release.
 
 ## Current limitations
 

@@ -21,7 +21,7 @@ async function connect(origin='http://localhost:5173'){
 function intent(member,frame,fields,id=crypto.randomUUID()){return {roomCode:member.room.code,matchId:frame.matchId,turn:frame.state.turn,actionId:id,...fields};}
 function scene(member){return server.rooms.get(member.room.code).match;}
 async function settle(socket,turn){await until(()=>latest.get(socket)?.state.phase==='aiming'&&latest.get(socket)?.state.turn===turn);}
-async function readyStart(sockets){for(const s of sockets)await ok(s,'room:ready',{ready:true});await ok(sockets[0],'room:start',{});await until(()=>sockets.every(s=>latest.get(s)?.state.phase==='aiming'));}
+async function readyStart(sockets){for(const s of sockets)await ok(s,'room:ready',{ready:true});await ok(sockets[0],'room:start',{});const room=server.rooms.get(rooms.get(sockets[0]).code);if(room.mode==='classic'){/* Stable actor IDs for legacy physics/security fixtures; randomized starts are tested separately. */room.match.match.turnOrder=[0,1,2,3];room.match.match.currentPlayer=0;server.broadcast(room);}await until(()=>sockets.every(s=>latest.get(s)?.state.phase==='aiming'));}
 function moveDanger(core,ids){ids.forEach((id,i)=>Matter.Body.setPosition(core.pens[id].body,{x:i%2===0?20:380,y:130+i*125}));}
 async function main(){try{
  const port=await server.listen(0,'127.0.0.1');url=`http://127.0.0.1:${port}`;

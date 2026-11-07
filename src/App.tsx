@@ -9,7 +9,7 @@ function PenIcon({type}:{type:PenType}){
  const p=PEN_CLASSES[type],colors={wooden:'#dbb36b',mechanical:'#ccdce1',ballpoint:'#b8c4ca',highlighter:'#d8e66c',fountain:'#334655'};
  return <svg className="pen-icon" viewBox="-100 -18 200 36" aria-hidden="true"><polygon points={p.outline.map(v=>`${v.x},${v.y}`).join(' ')} fill={colors[type]} stroke="#ffffff55" strokeWidth="1.2"/><path d="M -38 -3 L 22 -3" stroke="#fff9" strokeWidth="2"/>{type==='fountain'&&<path d="M 35 -6 L 56 0 L 35 6 Z" fill="#e8cc8a"/>}</svg>;
 }
-function Header(){return <header><div className="eyebrow">PEN BATTLE · V2.2</div><h1>弹笔大战</h1><p>真实弹笔 · 四人同桌 · 进化竞技场</p></header>;}
+function Header(){return <header><div className="eyebrow">PEN BATTLE · V2.3</div><h1>弹笔大战</h1><p>真实弹笔 · 好友同桌 · 进化竞技场</p></header>;}
 function ModeSelection({onStart,onExit}:{onStart:(mode:GameMode,seed:number)=>void;onExit:()=>void}){
  const [seed,setSeed]=useState(String(Date.now()>>>0));
  const start=(mode:GameMode)=>onStart(mode,Number(seed)>>>0);
@@ -40,6 +40,6 @@ export default function App(){
  const [play,setPlay]=useState<'choose'|'local'|'online'>(()=>/^\/room\/[A-Za-z2-9]{6}$/.test(window.location.pathname)?'online':'choose');
  const [settings,setSettings]=useState<{mode:GameMode;seed:number}|null>(null);
  if(play==='online')return <OnlinePlay onExit={()=>setPlay('choose')}/>;
- if(play==='choose')return <main className="app"><Header/><section className="mode-select"><button className="mode-card" onClick={()=>setPlay('local')}><strong>本地游戏</strong><span>四人同桌，保留经典与进化模式</span></button><button className="mode-card evolution-card" onClick={()=>setPlay('online')}><strong>在线游戏</strong><span>创建六位房间码，邀请朋友一起玩<br/>无需注册 · 四位玩家各自控制</span></button></section></main>;
+ if(play==='choose')return <main className="app"><Header/><section className="mode-select"><button className="mode-card" onClick={()=>setPlay('local')}><strong>本地游戏</strong><span>四人同桌，保留经典与进化模式</span></button><button className="mode-card evolution-card" onClick={()=>setPlay('online')}><strong>在线游戏</strong><span>创建六位房间码，邀请朋友一起玩<br/>无需注册 · 在线支持 2–4 位玩家</span></button></section></main>;
  return settings?<MatchBoard mode={settings.mode} seed={settings.seed} onExit={()=>setSettings(null)}/>:<ModeSelection onStart={(mode,seed)=>setSettings({mode,seed})} onExit={()=>setPlay('choose')}/>;
 }

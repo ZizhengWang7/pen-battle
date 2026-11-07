@@ -7,9 +7,9 @@ import {MatchEngine} from '../src/game/MatchEngine';
 import {FIXED_STEP} from '../src/game/physics';
 import type {PlayerId,GameMode} from '../src/game/types';
 import type {RoomView,NetworkFrame,Reply} from '../src/shared/protocol';
-import {ClientError,requireThat,object,roomCode,nickname,mode,finite,point,RateLimits,ALPHABET} from './validation';
+import {ClientError,requireThat,object,roomCode,nickname,mode,capacity,finite,point,RateLimits,ALPHABET} from './validation';
 interface Slot {id:PlayerId;nickname:string;digest:Buffer;socketId:string|null;connected:boolean;ready:boolean;deadline:number|null;}
-interface Room {code:string;mode:GameMode;hostId:PlayerId;slots:(Slot|null)[];status:RoomView['status'];match:MatchEngine|null;matchId:string|null;sequence:number;lastActivity:number;seen:Map<PlayerId,Set<string>>;message:string;}
+interface Room {code:string;maxPlayers:2|3|4;mode:GameMode;hostId:PlayerId;slots:(Slot|null)[];status:RoomView['status'];match:MatchEngine|null;matchId:string|null;sequence:number;lastActivity:number;seen:Map<PlayerId,Set<string>>;message:string;}
 export interface ServerOptions {origins?:string[];roomTtlMs?:number;graceMs?:number;staticDir?:string;now?:()=>number;creationLimit?:number;joinLimit?:number;resumeLimit?:number;maxRooms?:number;maxConnections?:number;}
 export function secureRoomCode(){return Array.from({length:6},()=>ALPHABET[randomInt(ALPHABET.length)]).join('');}
 const hash=(token:string)=>createHash('sha256').update(token).digest();
@@ -49,7 +49,7 @@ export class BattleServer {
  private view(room:Room):RoomView {
   const players=room.slots.filter((s):s is Slot=>s!==null).map(s=>({id:s.id,nickname:s.nickname,host:s.id===room.hostId,connected:s.connected,ready:s.ready}));
   const deadlines=room.slots.filter((s):s is Slot=>!!s&&!s.connected&&s.deadline!==null).map(s=>s.deadline!);
-  return {code:room.code,mode:room.mode,status:room.status,players,hostId:room.hostId,canStart:room.status!=='playing'&&players.length===4&&players.every(p=>p.connected&&p.ready),paused:room.status==='playing'&&players.some(p=>!p.connected),disconnectDeadline:deadlines.length?Math.min(...deadlines):null,message:room.message,matchId:room.matchId};
+  return {code:room.code,maxPlayers:room.maxPlayers,mode:room.mode,status:room.status,players,hostId:room.hostId,canStart:room.status!=='playing'&&players.length===room.maxPlayers&&players.every(p=>p.connected&&p.ready),paused:room.status==='playing'&&players.some(p=>!p.connected),disconnectDeadline:deadlines.length?Math.min(...deadlines):null,message:room.message,matchId:room.matchId};
  }
  private paused(room:Room){return room.status==='playing'&&room.slots.some(s=>!s||!s.connected)&&!!room.match&&['aiming','finished'].includes(room.match.status);}
  private frame(room:Room):NetworkFrame|null {if(!room.match||!room.matchId)return null;return {...room.match.getScene(),matchId:room.matchId,sequence:++room.sequence,tick:room.match.simulationTick,serverTime:this.now(),paused:this.paused(room)};}
@@ -74,16 +74,16 @@ export class BattleServer {
   });
   handle('room:create',5,60000,raw=>{
    requireThat(this.limits.allow(`${socket.handshake.address}:create`,this.options.creationLimit??5,60000,this.now()),'rate_limited','创建房间过于频繁');requireThat(!this.members.has(socket.id),'already_joined','请先离开当前房间');requireThat(this.rooms.size<(this.options.maxRooms??25),'server_busy','服务器房间已满');
-   const p=object(raw,['nickname','mode']),name=nickname(p.nickname),selected=mode(p.mode);let code:string;do{code=secureRoomCode();}while(this.rooms.has(code)||this.expired.has(code));
-   const {slot,credential}=this.newSlot(0,name),room:Room={code,mode:selected,hostId:0,slots:[slot,null,null,null],status:'lobby',match:null,matchId:null,sequence:0,lastActivity:this.now(),seen:new Map(),message:''};this.rooms.set(code,room);this.bind(socket,room,slot);this.broadcast(room);return this.response(room,slot,credential);
+   const p=object(raw,['nickname','mode','maxPlayers']),name=nickname(p.nickname),selected=mode(p.mode),maxPlayers=capacity(p.maxPlayers===undefined?4:p.maxPlayers);let code:string;do{code=secureRoomCode();}while(this.rooms.has(code)||this.expired.has(code));
+   const {slot,credential}=this.newSlot(0,name),room:Room={code,maxPlayers,mode:selected,hostId:0,slots:Array.from({length:maxPlayers},(_,id)=>id===0?slot:null),status:'lobby',match:null,matchId:null,sequence:0,lastActivity:this.now(),seen:new Map(),message:''};this.rooms.set(code,room);this.bind(socket,room,slot);this.broadcast(room);return this.response(room,slot,credential);
   });
   handle('room:join',15,60000,raw=>{
    requireThat(this.limits.allow(`${socket.handshake.address}:join`,this.options.joinLimit??60,60000,this.now()),'rate_limited','加入尝试过多');const p=object(raw,['code','nickname']),room=this.find(roomCode(p.code)),name=nickname(p.nickname);
-   requireThat(room.status==='lobby','match_started','对局已经开始，请使用原设备身份重连');requireThat(!room.slots.some(s=>s&&s.nickname.toLocaleLowerCase()===name.toLocaleLowerCase()),'duplicate_name','房间已有相同昵称，请换一个');const id=room.slots.findIndex(s=>s===null);requireThat(id>=0,'room_full','房间已有四位玩家');
+   requireThat(room.status==='lobby','match_started','对局已经开始，请使用原设备身份重连');requireThat(!room.slots.some(s=>s&&s.nickname.toLocaleLowerCase()===name.toLocaleLowerCase()),'duplicate_name','房间已有相同昵称，请换一个');const id=room.slots.findIndex(s=>s===null);requireThat(id>=0,'room_full','房间人数已满');
    requireThat(!this.members.has(socket.id),'already_joined','请先离开当前房间');const {slot,credential}=this.newSlot(id as PlayerId,name);room.slots[id]=slot;this.bind(socket,room,slot);this.broadcast(room);return this.response(room,slot,credential);
   });
   handle('room:resume',20,60000,raw=>{
-   requireThat(this.limits.allow(`${socket.handshake.address}:resume`,this.options.resumeLimit??60,60000,this.now()),'rate_limited','重连尝试过多');const p=object(raw,['code','credential']),room=this.find(roomCode(p.code));requireThat(typeof p.credential==='string'&&/^[\w-]{43}$/.test(p.credential),'unauthorized','重连身份无效');const digest=hash(p.credential),slot=room.slots.find(s=>s&&timingSafeEqual(s.digest,digest));requireThat(slot,'unauthorized','重连身份已失效');this.bind(socket,room,slot);this.broadcast(room);return this.response(room,slot,p.credential);
+   requireThat(this.limits.allow(`${socket.handshake.address}:resume`,this.options.resumeLimit??60,60000,this.now()),'rate_limited','重连尝试过多');const p=object(raw,['code','credential']),room=this.find(roomCode(p.code));requireThat(typeof p.credential==='string'&&/^[\w-]{43}$/.test(p.credential),'unauthorized','重连身份无效');const digest=hash(p.credential),slot=room.slots.find(s=>s&&timingSafeEqual(s.digest,digest));requireThat(slot&&(slot.deadline===null||this.now()<slot.deadline),'unauthorized','重连身份已失效');this.bind(socket,room,slot);this.broadcast(room);return this.response(room,slot,p.credential);
   });
   handle('room:ready',10,10000,raw=>{const p=object(raw,['ready']);requireThat(typeof p.ready==='boolean','invalid_payload','准备状态不正确');const {room,slot}=this.member(socket);requireThat(room.status!=='playing','match_started','对局正在进行');slot.ready=p.ready;room.lastActivity=this.now();this.broadcast(room);return this.view(room);});
   handle('room:mode',10,10000,raw=>{const p=object(raw,['mode']),{room}=this.host(socket);requireThat(room.status!=='playing','match_started','对局中不能切换模式');room.mode=mode(p.mode);room.slots.forEach(s=>{if(s)s.ready=false;});this.broadcast(room);return this.view(room);});
@@ -98,7 +98,7 @@ export class BattleServer {
    if(target.socketId){this.members.delete(target.socketId);const other=this.io.sockets.sockets.get(target.socketId);other?.leave(`room:${room.code}`);other?.emit('room:removed',{message:'你已被房主移出房间。'});}
    room.slots.forEach(s=>{if(s)s.ready=false;});room.lastActivity=this.now();room.message='房主已移除一位玩家，请重新准备。';this.broadcast(room);return this.view(room);
   });
-  handle('room:start',5,10000,raw=>{object(raw,[]);const {room}=this.host(socket);requireThat(this.view(room).canStart,'not_ready','需要四位玩家连接并准备');room.match?.destroy();room.match=new MatchEngine({mode:room.mode,seed:randomInt(4294967296)});room.match.setPlayerNames(room.slots.map(s=>s!.nickname));room.matchId=randomUUID();room.status='playing';room.sequence=0;room.seen.clear();room.message='';room.lastActivity=this.now();room.slots.forEach(s=>{if(s)s.ready=false;});this.broadcast(room);return this.view(room);});
+  handle('room:start',5,10000,raw=>{object(raw,[]);const {room}=this.host(socket);requireThat(this.view(room).canStart,'not_ready',`需要 ${room.maxPlayers} 位玩家连接并准备`);room.match?.destroy();room.match=new MatchEngine({mode:room.mode,seed:randomInt(4294967296),playerCount:room.maxPlayers,randomizeTurns:true});room.match.setPlayerNames(room.slots.map(s=>s!.nickname));room.matchId=randomUUID();room.status='playing';room.sequence=0;room.seen.clear();room.message='';room.lastActivity=this.now();room.slots.forEach(s=>{if(s)s.ready=false;});this.broadcast(room);return this.view(room);});
   handle('game:action',30,10000,raw=>{
    const p=object(raw,['roomCode','matchId','turn','actionId','kind','contact','direction','power']),{room,slot}=this.member(socket);
    requireThat(p.roomCode===room.code,'wrong_room','动作不属于此房间');requireThat(room.status==='playing'&&room.match&&p.matchId===room.matchId,'stale_match','对局已经结束或已重新开始');requireThat(!room.slots.some(s=>!s||!s.connected),'paused','等待离线玩家重连');
@@ -122,7 +122,7 @@ export class BattleServer {
   for(const room of this.rooms.values()){
    const timedOut=room.slots.some(s=>s&&!s.connected&&s.deadline!==null&&now>=s.deadline);
    if(timedOut){
-    if(room.status==='playing'||room.status==='finished'){room.match?.destroy();room.match=null;room.matchId=null;room.status='lobby';room.message='离线玩家超时，对局取消。补齐四位玩家后可重新开始。';room.slots.forEach(s=>{if(s)s.ready=false;});}
+    if(room.status==='playing'||room.status==='finished'){room.match?.destroy();room.match=null;room.matchId=null;room.status='lobby';room.message='离线玩家超时，对局取消。补齐房间人数后可重新开始。';room.slots.forEach(s=>{if(s)s.ready=false;});}
     room.slots=room.slots.map(s=>s&&!s.connected&&s.deadline!==null&&now>=s.deadline?null:s);this.transferHost(room);this.broadcast(room);
    }
    if(!room.slots.some(s=>s?.connected)&&now-room.lastActivity>=this.roomTtl){room.match?.destroy();this.rooms.delete(room.code);this.expired.set(room.code,now+this.roomTtl);}

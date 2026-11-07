@@ -44,10 +44,11 @@ The Render integration remains unauthorized in this environment. Build/runtime d
 Run the small functional browser smoke check against the actual HTTPS origin, not a local substitute:
 
 ```sh
-SMOKE_URL="$VERIFIED_RENDER_URL" npm run test:browser
+SMOKE_URL="$VERIFIED_RENDER_URL" SMOKE_PLAYERS=2 npm run test:browser -- --gameplay
+# Repeat sequentially with SMOKE_PLAYERS=3 and 4.
 ```
 
-Set `VERIFIED_RENDER_URL=https://pen-battle.onrender.com` before running that command. Verify `/health`, assets, room-link refresh, secure WebSocket transport, four-player actions, both modes, scoring, upgrades, respawns, a consistent winner, invalid-action rejection and rematches. Record evidence in [live-verification.md](live-verification.md). The root README now links to the verified service. Record any later verification against its actual deployed revision.
+Set `VERIFIED_RENDER_URL=https://pen-battle.onrender.com` before running that command. Verify `/health`, assets, room-link refresh, secure WebSocket transport, 2–4-player actions, both modes, scoring, upgrades, respawns, a consistent winner, invalid-action rejection and rematches. Record evidence in [live-verification.md](live-verification.md). The root README now links to the verified service. Record any later verification against its actual deployed revision.
 
 Do not run the load suite against production. It deliberately starts its own loopback server and cannot target an arbitrary URL.
 
@@ -56,3 +57,5 @@ Do not run the load suite against production. It deliberately starts its own loo
 Render's [Free plan documentation](https://render.com/docs/free) describes idle spin-down, cold starts, workspace usage quotas and possible restarts. Free compute is currently listed as 0.1 CPU / 512 MB in the [Blueprint reference](https://render.com/docs/blueprint-spec). Local 100-client measurements on a developer machine are not a capacity promise for that instance.
 
 Rooms are intentionally in memory. Redeploying, sleeping or restarting can discard all games and reconnect credentials. Clients receive a shutdown message, reconnect with backoff, and get a clear missing/expired identity error if their old room is gone. Multiple production instances are unsupported.
+
+V2.3 also publishes `/releases/v2.3.json`. Compare its contents and the homepage asset hashes with the local build after pushing, then exercise room capacities through the live server. This distinguishes the new release from an older healthy instance.
