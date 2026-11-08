@@ -4,3 +4,4 @@ import './network-client.test.mjs';
 import './server-config.test.mjs';
 
 import './room-sizes.test.mjs';
+import './achievements.test.mjs';

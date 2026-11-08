@@ -1,0 +1,7 @@
+{
+  "release": "2.4.0",
+  "evolutionVictory": "five-unique-pen-achievements",
+  "progression": "shared-five-pen-fisher-yates",
+  "screens": ["home", "lobby", "match", "results"],
+  "graceMs": 60000
+}

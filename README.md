@@ -9,8 +9,8 @@ Pen Battle is a tabletop game for 2–4 players online, or four players on one s
 Press anywhere on your pen, drag backward, and release. A flick near the tip or tail creates rotation; a centered flick mostly slides. The hand animation reaches the chosen point before the impulse is applied.
 
 - **Classic:** one metal ballpoint per player, permanent elimination, last pen standing wins.
-- **Evolution Arena:** start with a wooden pencil and earn upgrades by eliminating opponents. Everyone shares one seeded progression through five pen types. Eliminated players respawn; five credited eliminations wins.
-- **Self-elimination:** in Evolution, your own action knocking your pen off costs one upgrade stage, after earned upgrades. Your score stays unchanged. Stage zero cannot drop further.
+- **Evolution Arena:** start with the first pen in a fresh shared Fisher–Yates shuffle of all five types. Eliminating opponents upgrades your stage and completes the attacking pen’s achievement. Win only after scoring with **all five distinct pen types**; repeated kills with one type cannot win. Eliminated players respawn.
+- **Self-elimination:** in Evolution, your own action knocking your pen off costs one upgrade stage, after earned upgrades. Your completed pen achievements stay unchanged. Stage zero cannot drop further.
 - **Table Shake:** once per player per game, grip your pen and strike the desk instead of flicking. Pens whose centers are in the outer 5% edge zone fall—including your own.
 
 Wooden pencils, mechanical pencils, ballpoints, highlighters, and fountain pens each have their own shape, mass, center of mass, inertia, and friction. Rendering and collisions share the same outlines. Rotation comes from rigid-body impulses, not a scripted spin.
@@ -55,9 +55,11 @@ Use different devices, browsers, or isolated profiles when testing multiple play
 
 For LAN play, bind `HOST=0.0.0.0` and add the exact LAN frontend origin to `FRONTEND_ORIGINS`. Other devices must use the host computer's LAN address, not `localhost`.
 
-The server owns physics, actions, scores, upgrades, charges, respawns, and turns. Clients send validated action intents and interpolate snapshots. Rooms have no public directory. A disconnect pauses at the next safe turn boundary; after the 60-second grace period, the expired slot is removed and an interrupted match returns to the lobby. The room is deleted as soon as its last connected player or valid reconnect reservation is gone.
+The server owns physics, actions, achievements, upgrades, charges, respawns, and turns. Clients send validated action intents and interpolate snapshots. Rooms have no public directory. A disconnect pauses at the next safe turn boundary; after the 60-second grace period, the expired slot is removed and an interrupted match returns to the lobby. The room is deleted as soon as its last connected player or valid reconnect reservation is gone.
 
 Click **离开房间** to leave explicitly. The client waits for server confirmation before returning to the menu and clearing its saved identity. Leaving immediately revokes that credential and frees the slot; the host migrates when necessary. A voluntary departure during Classic or Evolution cancels that match without awarding points and returns everyone else to the lobby. Empty rooms are deleted immediately, including after completed games. The production room limit remains five. See [V2.3.1 lifecycle details](docs/v2.3.1-room-cleanup.md).
+
+V2.4 separates the online Home, Lobby, Match and Results screens. Creating/joining enters the lobby; only the ready host can start. Matches show the table, pen achievements and leave control. Results retain the same room and capacity for a ready/host-start rematch, with a fresh random route. Reconnect and refresh restore the screen from authoritative room state. See [V2.4 rules and verification](docs/v2.4-evolution.md).
 
 ## Tests and performance
 

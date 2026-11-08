@@ -46,20 +46,23 @@ async function main(){try{
   await ok(sockets[0],'room:mode',{mode:'evolution'});
   for(const s of sockets.slice(0,count))await ok(s,'room:ready',{ready:true});await ok(sockets[0],'room:start',{});await until(()=>sockets[0].frame.matchId!==oldMatch);
   const evolution=server.rooms.get(code).match,eActor=evolution.snapshot().currentPlayer,target=evolution.snapshot().turnOrder.find(id=>id!==eActor);
+  const originalRoute=[...evolution.snapshot().progression],originalSeed=evolution.snapshot().seed;
+  await bad(sockets[eActor],'game:action',{roomCode:code,progression:originalRoute},'invalid_payload');
   for(let score=1;score<=5;score++){
    evolution.match.currentPlayer=eActor;evolution.match.players[eActor].shakeCharge=1;server.broadcast(server.rooms.get(code));
    Matter.Body.setPosition(evolution.pens[target].body,{x:20,y:310});
    await until(()=>sockets[eActor].frame.state.currentPlayer===eActor&&sockets[eActor].frame.state.phase==='aiming');
    const ef=sockets[eActor].frame;await ok(sockets[eActor],'game:action',{roomCode:code,matchId:ef.matchId,turn:ef.state.turn,actionId:crypto.randomUUID(),kind:'shake'});
    await until(()=>sockets.slice(0,count).every(s=>s.frame.state.players[eActor].score===score&&['aiming','finished'].includes(s.frame.state.phase)));
-   assert.equal(sockets[0].frame.state.players[eActor].stage,Math.min(score,4));
+   assert.equal(sockets[0].frame.state.players[eActor].currentPenStage,Math.min(score,4));assert.deepEqual(sockets[0].frame.state.players[eActor].completedPenKills,originalRoute.slice(0,score));for(const s of sockets.slice(0,count))assert.deepEqual(s.frame.state.progression,originalRoute);
    if(score<5){assert.equal(sockets[0].frame.state.phase,'aiming');assert.ok(sockets[0].frame.state.players.every(p=>p.alive));}else assert.equal(sockets[0].frame.state.winner,eActor);
    for(const s of sockets.slice(0,count))assert.deepEqual(s.frame.state.players,sockets[0].frame.state.players);
   }
   const evolutionMatch=sockets[0].frame.matchId;skew+=11000;
   for(const s of sockets.slice(0,count))await ok(s,'room:ready',{ready:true});await ok(sockets[0],'room:start',{});await until(()=>sockets[0].frame.matchId!==evolutionMatch);assert.equal(sockets[0].frame.pens.length,count);assert.equal(sockets[0].room.maxPlayers,count);
+  assert.notEqual(sockets[0].frame.state.seed,originalSeed);assert.ok(sockets[0].frame.state.players.every(p=>p.completedPenKills.length===0));
   // Active host reconnect reserves control, then expired credentials cannot resume.
-  const hostToken=members[0].credential;sockets[0].disconnect();await until(()=>sockets[1].room.paused);sockets[0]=await connect();await ok(sockets[0],'room:resume',{code,credential:hostToken});await until(()=>!sockets[1].room.paused);
+  const restoreRoute=[...sockets[0].frame.state.progression];const hostToken=members[0].credential;sockets[0].disconnect();await until(()=>sockets[1].room.paused);sockets[0]=await connect();await ok(sockets[0],'room:resume',{code,credential:hostToken});await until(()=>!sockets[1].room.paused);assert.deepEqual(sockets[0].frame.state.progression,restoreRoute);assert.deepEqual(sockets[0].frame.state.players,sockets[1].frame.state.players);
   sockets[0].disconnect();await until(()=>!server.rooms.get(code).slots[0].connected);skew+=5001;
   await bad(sockets[count],'room:resume',{code,credential:hostToken},'unauthorized');await until(()=>server.rooms.get(code).status==='lobby');assert.notEqual(server.rooms.get(code).hostId,0);
   assert.equal(server.rooms.get(code).maxPlayers,count);for(const s of sockets)if(s.connected)await ok(s,'room:leave',{});

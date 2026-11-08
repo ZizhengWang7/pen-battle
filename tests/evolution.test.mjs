@@ -23,13 +23,13 @@ function readyShake(game,victims){
  victims.forEach((id,i)=>Body.setPosition(game.pens[id].body,{x:i%2===0?20:380,y:120+110*i}));
  assert.equal(game.shake(actor),true);return actor;
 }
-check('Mode selection initializes waiting state, Classic ballpoints and Evolution wooden pencils',()=>{
+check('Mode selection initializes waiting state, Classic ballpoints and Evolution first shared pen',()=>{
  const classic=createMatch('classic',9),evolution=createMatch('evolution',9);assert.equal(classic.phase,'waiting');assert.equal(evolution.phase,'waiting');
- assert.ok(classic.players.every(p=>p.penType==='ballpoint'));assert.ok(evolution.players.every(p=>p.penType==='wooden'));startMatch(evolution);assert.equal(evolution.phase,'aiming');
- const {game}=fixture('classic',9);assert.equal(game.snapshot().mode,'classic');game.reset('evolution',9);assert.equal(game.snapshot().mode,'evolution');assert.ok(game.pens.every(p=>bodyPenType(p.body)==='wooden'));game.destroy();
+ assert.ok(classic.players.every(p=>p.penType==='ballpoint'));assert.ok(evolution.players.every(p=>p.penType===evolution.progression[0]));startMatch(evolution);assert.equal(evolution.phase,'aiming');
+ const {game}=fixture('classic',9);assert.equal(game.snapshot().mode,'classic');game.reset('evolution',9);assert.equal(game.snapshot().mode,'evolution');assert.ok(game.pens.every(p=>bodyPenType(p.body)===game.snapshot().progression[0]));game.destroy();
 });
 check('Seeded PRNG, progression and randomized Evolution turn order are deterministic',()=>{
- const a=createMatch('evolution',123),b=createMatch('evolution',123);assert.deepEqual(a,b);assert.equal(a.progression[0],'wooden');assert.equal(new Set(a.progression).size,5);assert.equal(new Set(a.turnOrder).size,4);
+ const a=createMatch('evolution',123),b=createMatch('evolution',123);assert.deepEqual(a,b);assert.equal(new Set(a.progression).size,5);assert.equal(new Set(a.turnOrder).size,4);
  const variants=new Set(Array.from({length:20},(_,seed)=>createMatch('evolution',seed).turnOrder.join('')));assert.ok(variants.size>5);
  const routes=new Set(Array.from({length:20},(_,seed)=>createMatch('evolution',seed).progression.join(',')));assert.ok(routes.size>5);
  const r1=seededRandom(0),r2=seededRandom(0);for(let i=0;i<100;i++){const n=r1();assert.equal(n,r2());assert.ok(n>=0&&n<1);}
@@ -66,15 +66,15 @@ check('Action attribution is deduplicated, excludes self, commits multiple kills
  assert.ok(acceptAction(state,{type:'flick',playerId:actor,dx:.5,dy:0}));assert.equal(acceptAction(state,{type:'shake',playerId:actor}),false);
  for(const id of [actor,...victims,victims[0],actor])recordElimination(state,id);
  assert.equal(state.players[actor].score,0);assert.equal(state.activeAction.eliminated.length,4);
- const changed=scoreAction(state);assert.equal(state.players[actor].score,3);assert.equal(state.players[actor].stage,2);assert.equal(state.players[actor].penType,state.progression[2]);assert.deepEqual(changed,[actor]);
+ const changed=scoreAction(state);assert.equal(state.players[actor].score,3);assert.equal(state.players[actor].currentPenStage,2);assert.equal(state.players[actor].penType,state.progression[2]);assert.deepEqual(changed,[actor]);
  scoreAction(state);assert.equal(state.players[actor].score,3);assert.ok(state.players.every(p=>p.respawn==='pending'));
  state.players.forEach(p=>{p.alive=true;p.respawn='active';});state.phase='next_turn';assert.equal(nextTurn(state),true);assert.equal(state.activeAction,null);
  assert.ok(acceptAction(state,{type:'flick',playerId:state.currentPlayer,dx:.1,dy:0}));assert.deepEqual(state.activeAction.eliminated,[]);
 });
-check('Five-kill victory and score cap are evaluated before any respawn or turn advancement',()=>{
- const state=createMatch('evolution',3);startMatch(state);const actor=state.currentPlayer;state.players[actor].score=4;state.players[actor].stage=4;
+check('Five-pen achievement victory and achievements are evaluated before any respawn or turn advancement',()=>{
+ const state=createMatch('evolution',3);startMatch(state);const actor=state.currentPlayer;state.players[actor].score=4;state.players[actor].currentPenStage=4;state.players[actor].penType=state.progression[4];state.players[actor].completedPenKills=state.progression.slice(0,4);
  acceptAction(state,{type:'shake',playerId:actor});for(const p of state.players)recordElimination(state,p.id);scoreAction(state);
- assert.equal(state.players[actor].score,WIN_SCORE);assert.equal(state.players[actor].stage,3);assert.equal(state.winner,actor);assert.equal(state.phase,'finished');const turn=state.turn;assert.equal(nextTurn(state),false);assert.equal(state.turn,turn);
+ assert.equal(state.players[actor].score,7);assert.equal(state.players[actor].currentPenStage,3);assert.equal(state.winner,actor);assert.equal(state.phase,'finished');const turn=state.turn;assert.equal(nextTurn(state),false);assert.equal(state.turn,turn);
 });
 check('Spawn placement is seeded, fully inside safe zone, non-overlapping and starts at rest for every class',()=>{
  for(const type of PEN_TYPES){const placed=[];
@@ -86,20 +86,20 @@ check('Spawn placement is seeded, fully inside safe zone, non-overlapping and st
  assert.equal(findSpawn('wooden',[Bodies.rectangle(200,310,1000,1000)],2,0),null);
 });
 check('Classic still eliminates permanently, awards no Evolution points and preserves its fixed turn order',()=>{
- const {game}=fixture('classic',77);readyShake(game,[1]);resolve(game);const s=game.snapshot();assert.equal(s.alive[1],false);assert.equal(s.currentPlayer,2);assert.equal(s.phase,'aiming');assert.ok(s.players.every(p=>p.score===0&&p.stage===0&&p.penType==='ballpoint'));assert.equal(s.players[1].respawn,'eliminated');assert.equal(game.engine.world.bodies.length,3);game.destroy();
+ const {game}=fixture('classic',77);readyShake(game,[1]);resolve(game);const s=game.snapshot();assert.equal(s.alive[1],false);assert.equal(s.currentPlayer,2);assert.equal(s.phase,'aiming');assert.ok(s.players.every(p=>p.score===0&&p.currentPenStage===0&&p.penType==='ballpoint'));assert.equal(s.players[1].respawn,'eliminated');assert.equal(game.engine.world.bodies.length,3);game.destroy();
 });
 check('Evolution shake multiple kills score, upgrade and respawn before advancing in randomized order',()=>{
  const {game,history}=fixture();const initial=game.snapshot(),actor=initial.currentPlayer,victims=initial.turnOrder.filter(id=>id!==actor).slice(0,2);
  readyShake(game,victims);until(game,()=>game.snapshot().phase==='scoring');assert.equal(game.snapshot().players[actor].score,0);game.step();assert.equal(game.snapshot().players[actor].score,2);assert.equal(game.snapshot().phase,'upgrading');
- resolve(game);const s=game.snapshot();assert.equal(s.players[actor].stage,2);assert.equal(s.players[actor].penType,s.progression[2]);assert.equal(bodyPenType(game.pens[actor].body),s.progression[2]);assert.ok(s.players.every(p=>p.alive&&p.respawn==='active'));assert.equal(s.players[actor].shakeCharge,0);assert.equal(s.currentPlayer,s.turnOrder[1]);assert.equal(s.turn,2);
+ resolve(game);const s=game.snapshot();assert.equal(s.players[actor].currentPenStage,2);assert.equal(s.players[actor].penType,s.progression[2]);assert.equal(bodyPenType(game.pens[actor].body),s.progression[2]);assert.ok(s.players.every(p=>p.alive&&p.respawn==='active'));assert.equal(s.players[actor].shakeCharge,0);assert.equal(s.currentPlayer,s.turnOrder[1]);assert.equal(s.turn,2);
  for(const phase of ['hand_animation','falling','scoring','upgrading','respawning','next_turn','aiming'])assert.ok(history.some(h=>h.phase===phase),phase);
  assert.ok(s.notices.some(n=>n.kind==='upgrade'));assert.equal(s.notices.filter(n=>n.kind==='respawn').length,2);
  for(const victim of victims){const body=game.pens[victim].body;assert.ok(isSafeSpawn(body,game.engine.world.bodies.filter(b=>b!==body)));assert.equal(Body.getSpeed(body),0);}
  game.destroy();
 });
 check('Self-elimination preserves score and spent shake, and respawns at the downgraded type',()=>{
- const {game}=fixture();const actor=game.snapshot().currentPlayer;game.match.players[actor].score=2;game.match.players[actor].stage=2;game.match.players[actor].penType=game.match.progression[2];game.replaceUpgrade(actor);
- readyShake(game,[actor]);resolve(game);const p=game.snapshot().players[actor];assert.equal(p.score,2);assert.equal(p.stage,1);assert.equal(p.penType,game.snapshot().progression[1]);assert.equal(p.shakeCharge,0);assert.equal(p.alive,true);assert.equal(p.respawn,'active');assert.equal(bodyPenType(game.pens[actor].body),p.penType);game.destroy();
+ const {game}=fixture();const actor=game.snapshot().currentPlayer;game.match.players[actor].score=2;game.match.players[actor].currentPenStage=2;game.match.players[actor].penType=game.match.progression[2];game.replaceUpgrade(actor);
+ readyShake(game,[actor]);resolve(game);const p=game.snapshot().players[actor];assert.equal(p.score,2);assert.equal(p.currentPenStage,1);assert.equal(p.penType,game.snapshot().progression[1]);assert.equal(p.shakeCharge,0);assert.equal(p.alive,true);assert.equal(p.respawn,'active');assert.equal(bodyPenType(game.pens[actor].body),p.penType);game.destroy();
 });
 check('Indirect collision falls are credited to the acting player and do not leak into the next action',()=>{
  const {game}=fixture();const actor=game.snapshot().currentPlayer,target=game.snapshot().turnOrder[1];let other=0;
@@ -114,13 +114,13 @@ check('Blocked respawns remain pending and retry every safe interval without adv
  Composite.remove(game.engine.world,blocker);resolve(game);assert.equal(game.snapshot().turn,2);assert.equal(game.snapshot().players[victim].respawn,'active');game.destroy();
 });
 check('A winning Evolution action commits every victim, excludes self, and stops before upgrades or respawns',()=>{
- const {game,history}=fixture();const actor=game.snapshot().currentPlayer;game.match.players[actor].score=4;game.match.players[actor].stage=4;game.match.players[actor].penType=game.match.progression[4];game.replaceUpgrade(actor);
- readyShake(game,[0,1,2,3]);until(game,()=>game.snapshot().phase==='scoring');const length=history.length;game.step();const s=game.snapshot();assert.equal(s.phase,'finished');assert.equal(s.winner,actor);assert.equal(s.players[actor].score,5);assert.equal(s.turn,1);assert.equal(s.activeAction.eliminated.length,4);assert.equal(s.activeAction.scored,true);assert.equal(game.engine.world.bodies.length,0);
+ const {game,history}=fixture();const actor=game.snapshot().currentPlayer;game.match.players[actor].completedPenKills=game.match.progression.slice(0,4);game.match.players[actor].score=4;game.match.players[actor].currentPenStage=4;game.match.players[actor].penType=game.match.progression[4];game.replaceUpgrade(actor);
+ readyShake(game,[0,1,2,3]);until(game,()=>game.snapshot().phase==='scoring');const length=history.length;game.step();const s=game.snapshot();assert.equal(s.phase,'finished');assert.equal(s.winner,actor);assert.equal(s.players[actor].score,7);assert.equal(s.players[actor].completedPenKills.length,5);assert.equal(s.turn,1);assert.equal(s.activeAction.eliminated.length,4);assert.equal(s.activeAction.scored,true);assert.equal(game.engine.world.bodies.length,0);
  for(let i=0;i<100;i++)game.step();assert.equal(game.snapshot().phase,'finished');assert.ok(!history.slice(length).some(h=>['upgrading','respawning','next_turn'].includes(h.phase)));game.destroy();
 });
-check('Restart preserves mode and seed, resets scores/progression/charges and reproduces turn order',()=>{
+check('Explicit seeded restart preserves mode and seed, resets scores/progression/charges and reproduces turn order',()=>{
  const {game}=fixture('evolution',55),original=game.snapshot();readyShake(game,[original.turnOrder[1]]);resolve(game);assert.ok(game.snapshot().players.some(p=>p.score>0));
- game.reset();const s=game.snapshot();assert.equal(s.mode,'evolution');assert.equal(s.seed,55);assert.deepEqual(s.turnOrder,original.turnOrder);assert.deepEqual(s.progression,original.progression);assert.equal(s.turn,1);assert.equal(s.activeAction,null);assert.equal(s.winner,null);assert.equal(s.notices.length,0);assert.ok(s.players.every(p=>p.score===0&&p.stage===0&&p.penType==='wooden'&&p.shakeCharge===1&&p.alive));game.destroy();
+ game.reset(original.mode,original.seed);const s=game.snapshot();assert.equal(s.mode,'evolution');assert.equal(s.seed,55);assert.deepEqual(s.turnOrder,original.turnOrder);assert.deepEqual(s.progression,original.progression);assert.equal(s.turn,1);assert.equal(s.activeAction,null);assert.equal(s.winner,null);assert.equal(s.notices.length,0);assert.ok(s.players.every(p=>p.score===0&&p.currentPenStage===0&&p.penType===s.progression[0]&&p.shakeCharge===1&&p.alive));game.destroy();
 });
 check('Table-strike impact timing creates no duplicate bodies and checks danger exactly once at contact',()=>{
  const {game}=fixture('classic');const originalBodies=[...game.engine.world.bodies],positions=originalBodies.map(b=>({...b.position}));readyShake(game,[1]);const selectedPosition={...game.pens[1].body.position};
@@ -142,7 +142,7 @@ check('An upgrade that would overlap queues a safe relocation without awarding a
  const {game}=fixture();const actor=game.snapshot().currentPlayer,other=game.snapshot().turnOrder[1];
  Body.setAngle(game.pens[actor].body,Math.PI/2);Body.setPosition(game.pens[actor].body,{x:200,y:310});Body.setAngle(game.pens[other].body,Math.PI/2);Body.setPosition(game.pens[other].body,{x:216,y:310});
  assert.equal(Query.collides(game.pens[actor].body,[game.pens[other].body]).length,0);
- game.match.players[actor].penType='highlighter';game.match.players[actor].score=1;game.match.players[actor].stage=1;
+ game.match.players[actor].penType='highlighter';game.match.players[actor].score=1;game.match.players[actor].currentPenStage=1;
  game.replaceUpgrade(actor);assert.equal(game.match.players[actor].respawn,'pending');assert.equal(game.pens[actor].alive,false);assert.equal(game.snapshot().players[actor].score,1);
  game.respawn();assert.equal(game.match.players[actor].respawn,'active');const body=game.pens[actor].body;assert.equal(bodyPenType(body),'highlighter');assert.ok(isSafeSpawn(body,game.engine.world.bodies.filter(b=>b!==body)));assert.equal(game.snapshot().players[actor].score,1);game.destroy();
 });
@@ -162,14 +162,14 @@ check('V2.1 standardized travel and rotation improve highlighter and fountain wh
 });
 check('Self-elimination penalty floors at zero, follows earned upgrades, preserves score and applies once',()=>{
  for(const type of ['flick','shake'])for(const [stage,kills,expected] of [[0,0,0],[3,0,2],[1,1,1],[3,3,3]]){
-  const s=createMatch('evolution',9);startMatch(s);const actor=s.currentPlayer;s.players[actor].stage=stage;s.players[actor].score=1;
+  const s=createMatch('evolution',9);startMatch(s);const actor=s.currentPlayer;s.players[actor].currentPenStage=stage;s.players[actor].score=1;
   acceptAction(s,type==='shake'?{type,playerId:actor}:{type,playerId:actor,dx:.2,dy:0});recordElimination(s,actor);recordElimination(s,actor);
   s.turnOrder.filter(id=>id!==actor).slice(0,kills).forEach(id=>recordElimination(s,id));scoreAction(s);
-  assert.equal(s.players[actor].stage,expected);assert.equal(s.players[actor].penType,s.progression[expected]);assert.equal(s.players[actor].score,1+kills);scoreAction(s);assert.equal(s.players[actor].stage,expected);
+  assert.equal(s.players[actor].currentPenStage,expected);assert.equal(s.players[actor].penType,s.progression[expected]);assert.equal(s.players[actor].score,1+kills);scoreAction(s);assert.equal(s.players[actor].currentPenStage,expected);
  }
 });
 check('An opponent elimination never downgrades its victim; Classic never applies self downgrade',()=>{
- const s=createMatch('evolution',8);startMatch(s);const actor=s.currentPlayer,target=s.turnOrder[1];s.players[target].stage=3;s.players[target].penType=s.progression[3];acceptAction(s,{type:'flick',playerId:actor,dx:.1,dy:0});recordElimination(s,target);scoreAction(s);assert.equal(s.players[target].stage,3);
- const c=createMatch('classic',8);startMatch(c);acceptAction(c,{type:'shake',playerId:0});recordElimination(c,0);scoreAction(c);assert.equal(c.players[0].stage,0);assert.equal(c.players[0].penType,'ballpoint');
+ const s=createMatch('evolution',8);startMatch(s);const actor=s.currentPlayer,target=s.turnOrder[1];s.players[target].currentPenStage=3;s.players[target].penType=s.progression[3];acceptAction(s,{type:'flick',playerId:actor,dx:.1,dy:0});recordElimination(s,target);scoreAction(s);assert.equal(s.players[target].currentPenStage,3);
+ const c=createMatch('classic',8);startMatch(c);acceptAction(c,{type:'shake',playerId:0});recordElimination(c,0);scoreAction(c);assert.equal(c.players[0].currentPenStage,0);assert.equal(c.players[0].penType,'ballpoint');
 });
 console.log(`${count} Evolution validation groups passed.`);

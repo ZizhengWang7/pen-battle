@@ -37,12 +37,12 @@ for(const count of [2,3,4]){
  // fixture resets charge between rounds to isolate scoring from turn selection.
  for(let score=1;score<=5;score++){
   evo.match.currentPlayer=actor;evo.match.players[actor].shakeCharge=1;edge(evo,[target]);assert.ok(evo.shake(actor));settle(evo);
-  const s=evo.snapshot();assert.equal(s.players[actor].score,score);assert.equal(s.players[actor].stage,Math.min(4,score));
+  const s=evo.snapshot();assert.equal(s.players[actor].score,score);assert.deepEqual(s.players[actor].completedPenKills,s.progression.slice(0,score));assert.equal(s.players[actor].currentPenStage,Math.min(4,score));
   for(let i=0;i<5;i++)evo.step();assert.equal(evo.snapshot().players[actor].score,score);
   if(score<5){assert.notEqual(s.phase,'finished');assert.ok(s.players.every(p=>p.alive&&p.respawn==='active'));}else{assert.equal(s.phase,'finished');assert.equal(s.winner,actor);}
  }
- evo.reset();evo.match.players[actor].stage=2;evo.match.players[actor].score=2;evo.match.players[actor].penType=evo.match.progression[2];evo.replaceUpgrade(actor);evo.match.currentPlayer=actor;edge(evo,[actor]);assert.ok(evo.shake(actor));settle(evo);assert.equal(evo.snapshot().players[actor].stage,1);assert.equal(evo.snapshot().players[actor].score,2);assert.ok(evo.snapshot().players[actor].alive);evo.destroy();
- groups++;console.log(`✓ ${count}-player Classic victory/skip and Evolution five-point victory, deduplicated scoring, respawn, self downgrade`);
+ evo.reset();evo.match.players[actor].currentPenStage=2;evo.match.players[actor].score=2;evo.match.players[actor].penType=evo.match.progression[2];evo.replaceUpgrade(actor);evo.match.currentPlayer=actor;edge(evo,[actor]);assert.ok(evo.shake(actor));settle(evo);assert.equal(evo.snapshot().players[actor].currentPenStage,1);assert.equal(evo.snapshot().players[actor].score,2);assert.ok(evo.snapshot().players[actor].alive);evo.destroy();
+ groups++;console.log(`✓ ${count}-player Classic victory/skip and Evolution five-pen achievement victory, deduplicated scoring, respawn, self downgrade`);
 }
 for(const value of [null,0,1,5,-1,2.5,'2',true,{},NaN,Infinity])assert.throws(()=>capacity(value));
 console.log(`${groups+1} room-size regression groups passed.`);

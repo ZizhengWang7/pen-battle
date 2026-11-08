@@ -39,11 +39,14 @@ export async function verifyRoomGameplay(base,identities){
    await ok(s,'game:action',action(s,{kind:'flick',contact:p,direction:{x:d.x,y:d.y},power:1}));await settled(frame.state.turn+1);
   }
   assert.equal(players[0].frame.state.phase,'finished');await ok(players[0],'room:mode',{mode:'evolution'});await readyStart();
-  const ef=players[0].frame,eactor=ef.state.currentPlayer,ep=ef.pens[eactor].position;
+  const ef=players[0].frame;
+  assert.equal(new Set(ef.state.progression).size,5);for(const s of players)assert.deepEqual(s.frame.state.progression,ef.state.progression);checks.sharedRandomRoute=true;
+  assert.ok(ef.state.players.every(p=>p.completedPenKills.length===0&&p.penType===ef.state.progression[0]));checks.freshAchievements=true;
+  const eactor=ef.state.currentPlayer,ep=ef.pens[eactor].position;
   const direction=ep.x<200?{x:-1,y:0}:ep.x>200?{x:1,y:0}:{x:0,y:-1};
   let sawFall=false;for(const s of players)s.on('game:snapshot',frame=>{if(frame.state.players[eactor]?.respawn==='falling')sawFall=true;});
   await ok(players[eactor],'game:action',action(players[eactor],{kind:'flick',contact:ep,direction,power:1}));await settled(2);
-  assert.ok(sawFall);assert.ok(players[0].frame.state.players.every(p=>p.alive&&p.respawn==='active'));assert.equal(players[0].frame.state.phase,'aiming');assert.equal(players[0].frame.state.winner,null);checks.evolutionRespawnContinues=true;
+  assert.ok(sawFall);assert.ok(players[0].frame.state.players.every(p=>p.alive&&p.respawn==='active'));assert.equal(players[0].frame.state.phase,'aiming');assert.equal(players[0].frame.state.winner,null);checks.evolutionRespawnContinues=true;assert.deepEqual(players[0].frame.state.players[eactor].completedPenKills,[]);checks.selfFallNoAchievement=true;
   const sf=players[0].frame,shaker=sf.state.currentPlayer;await ok(players[shaker],'game:action',action(players[shaker],{kind:'shake'}));await settled(sf.state.turn+1);assert.equal(players[0].frame.state.players[shaker].shakeCharge,0);assert.equal(players[0].frame.state.turn,sf.state.turn+1);checks.shakeOneTurn=true;
   await until(()=>players.every(s=>s.frame.state.turn===players[0].frame.state.turn));for(const s of players)assert.deepEqual(s.frame.state,players[0].frame.state);checks.synchronized=true;assert.equal(outsider.frame,undefined);checks.noUnauthorizedSnapshots=true;
   console.log(JSON.stringify({gameplayPassed:true,playerCount:count,checks}));return checks;

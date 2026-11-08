@@ -42,7 +42,7 @@ export class MatchEngine {
   get needsStep(){return !['waiting','aiming','finished'].includes(this.phase)||this.respawnGlows.size>0;}
   snapshot():GameSnapshot{return {...structuredClone(this.match),alive:this.pens.map(p=>p.alive),shakeCharges:this.match.players.map(p=>p.shakeCharge),canShake:this.canShake(this.current)};}
   protected emit(){this.onChange(this.snapshot());}
-  reset(mode:GameMode=this.match.mode,seed=this.match.seed){
+  reset(mode:GameMode=this.match.mode,seed=(Math.random()*4294967296)>>>0){
     this.onReset?.();this.simulationTick=0;this.flick=null;this.strike=null;this.shakeElapsed=null;this.settledTime=0;this.phaseTime=0;
     this.upgrades=[];this.upgraded=false;this.respawnRetry=0;this.respawnGlows.clear();
     this.match=createMatch(mode,seed,this.playerCount,this.randomizeTurns);startMatch(this.match);Composite.clear(this.engine.world,false);
