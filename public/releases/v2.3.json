@@ -1,4 +1,5 @@
 {
   "release": "2.3.0",
+  "verificationRevision": 2,
   "roomCapacities": [2, 3, 4]
 }

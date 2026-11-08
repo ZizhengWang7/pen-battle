@@ -50,9 +50,10 @@ try{
  const local=await page();await click(local,'本地游戏');await click(local,'经典淘汰');await until(()=>evaluate(local,"document.querySelector('.table-canvas')?.getContext('2d').getImageData(400,620,1,1).data[3]===255"));checks.localPreserved=true;
  await send('Page.bringToFront',{},local);
  const lp=await evaluate(local,"(()=>{const c=document.querySelector('.table-canvas');c.scrollIntoView({block:'center'});const r=c.getBoundingClientRect();return {x:r.left+r.width*(105+40*Math.cos(.27))/400,y:r.top+r.height*(165+40*Math.sin(.27))/620};})()");
- await send('Input.dispatchMouseEvent',{type:'mousePressed',x:lp.x,y:lp.y,button:'left',buttons:1,clickCount:1},local);
- await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:lp.x-35,y:lp.y+25,buttons:1},local);await sleep(100);await screenshot(local,'classic');
- await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:lp.x-35,y:lp.y+25,button:'left',buttons:0,clickCount:1},local);
+ await send('Emulation.setTouchEmulationEnabled',{enabled:true,maxTouchPoints:1},local);
+ await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:lp.x,y:lp.y,id:1}]},local);
+ await send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:lp.x-35,y:lp.y+25,id:1}]},local);await sleep(100);await screenshot(local,'classic');
+ await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]},local);
  await until(()=>evaluate(local,"document.querySelector('.status').textContent.includes('第 2 回合')"));checks.localFlick=true;await click(local,'选择玩法');await click(local,'进化竞技场');await until(()=>evaluate(local,"document.querySelector('.progression-track')&&document.querySelector('.table-canvas')?.getContext('2d').getImageData(400,620,1,1).data[3]===255"));checks.evolutionPreserved=true;await screenshot(local,'evolution');
  if(process.argv.includes('--gameplay')){const identities=await Promise.all(pages.map(p=>evaluate(p,`({code:'${code}',credential:localStorage.getItem('pen-battle:identity:${code}')})`)));checks.gameplay=Object.values(await verifyRoomGameplay(base.href,identities)).every(Boolean);}
  console.log(JSON.stringify({passed:Object.values(checks).every(Boolean),checks,code,playerCount,screenshots:capture?'docs/screenshots':null},null,2));assert.ok(Object.values(checks).every(Boolean));
