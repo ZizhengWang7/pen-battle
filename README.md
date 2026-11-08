@@ -55,7 +55,9 @@ Use different devices, browsers, or isolated profiles when testing multiple play
 
 For LAN play, bind `HOST=0.0.0.0` and add the exact LAN frontend origin to `FRONTEND_ORIGINS`. Other devices must use the host computer's LAN address, not `localhost`.
 
-The server owns physics, actions, scores, upgrades, charges, respawns, and turns. Clients send validated action intents and interpolate snapshots. Rooms have no public directory. A disconnect pauses at the next safe turn boundary; after the grace period, the match returns to the lobby so it cannot remain stuck.
+The server owns physics, actions, scores, upgrades, charges, respawns, and turns. Clients send validated action intents and interpolate snapshots. Rooms have no public directory. A disconnect pauses at the next safe turn boundary; after the 60-second grace period, the expired slot is removed and an interrupted match returns to the lobby. The room is deleted as soon as its last connected player or valid reconnect reservation is gone.
+
+Click **离开房间** to leave explicitly. The client waits for server confirmation before returning to the menu and clearing its saved identity. Leaving immediately revokes that credential and frees the slot; the host migrates when necessary. A voluntary departure during Classic or Evolution cancels that match without awarding points and returns everyone else to the lobby. Empty rooms are deleted immediately, including after completed games. The production room limit remains five. See [V2.3.1 lifecycle details](docs/v2.3.1-room-cleanup.md).
 
 ## Tests and performance
 
@@ -63,7 +65,7 @@ The server owns physics, actions, scores, upgrades, charges, respawns, and turns
 npm test                    # physics/rules + real 2/3/4-client integration tests
 npm run build               # frontend and typed Node server
 npm run test:load            # isolated local 5/10/25-room benchmarks
-SMOKE_URL=http://127.0.0.1:3001 SMOKE_PLAYERS=2 npm run test:browser -- --gameplay
+SMOKE_URL=http://127.0.0.1:3001 SMOKE_PLAYERS=2 npm run test:browser -- --gameplay --lifecycle
 # Requires Chrome + the production server above. Repeat with SMOKE_PLAYERS=3 and 4.
 ```
 

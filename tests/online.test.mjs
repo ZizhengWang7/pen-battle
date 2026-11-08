@@ -106,7 +106,7 @@ async function main(){try{
   const joined=await ok(extra,'room:join',{code:room.code,nickname:'New host candidate'});assert.equal(joined.playerId,0);assert.equal(server.rooms.get(bMembers[0].room.code).status,'playing');
  });
  await group('Abandoned rooms expire distinctly; payload limits and rate limits do not crash the server',async()=>{
-  const lonely=await connect(),membership=await ok(lonely,'room:create',{nickname:'Lonely',mode:'classic'});lonely.disconnect();await until(()=>server.rooms.get(membership.room.code).slots[0]?.connected===false);clockSkew+=5000;await until(()=>!server.rooms.has(membership.room.code));const probe=await connect();await error(probe,'room:join',{code:membership.room.code,nickname:'Late'},'room_expired');
+  const lonely=await connect(),membership=await ok(lonely,'room:create',{nickname:'Lonely',mode:'classic'});lonely.disconnect();await until(()=>server.rooms.get(membership.room.code).slots[0]?.connected===false);clockSkew+=11000;await until(()=>!server.rooms.has(membership.room.code));const probe=await connect();await error(probe,'room:join',{code:membership.room.code,nickname:'Late'},'room_expired');
   for(let i=0;i<5;i++)await call(probe,'room:create',null);await error(probe,'room:create',null,'rate_limited');assert.equal((await fetch(url+'/health')).status,200);
  });
  await group('Room and connection limits return friendly capacity errors and free capacity after disconnect',async()=>{

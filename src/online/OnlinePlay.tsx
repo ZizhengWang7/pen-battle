@@ -43,10 +43,18 @@ export default function OnlinePlay({onExit}:{onExit:()=>void}){
  const sendRef=useRef(send);sendRef.current=send;
  allowed.current=connected&&!busy&&!room?.paused;
  useEffect(()=>{if(!canvas.current||!identity||!room?.matchId)return;const table=new OnlineTable(canvas.current,buffer.current,identity.playerId,intent=>sendRef.current(intent),()=>allowed.current,setAiming);return()=>table.destroy();},[identity?.playerId,room?.matchId,frame?.matchId]);
- const leave=async()=>{if(socketRef.current?.connected)await run('room:leave',{});if(identity){try{localStorage.removeItem(STORAGE+identity.room.code);localStorage.removeItem('pen-battle:last-room');}catch{/* ignore storage restrictions */}}identityRef.current=null;history.replaceState(null,'','/');onExit();};
+ const leave=async()=>{
+  if(identity){
+   const result=await run<{left:boolean;roomDeleted:boolean}>('room:leave',{});
+   if(!result?.left)return;
+   try{localStorage.removeItem(STORAGE+identity.room.code);localStorage.removeItem('pen-battle:last-room');}catch{/* ignore storage restrictions */}
+  }
+  identityRef.current=null;setIdentity(null);setRoom(null);setFrame(null);buffer.current.clear();history.replaceState(null,'','/');onExit();
+ };
  const invite=room?`${window.location.origin}/room/${room.code}`:'';
  const self=room?.players.find(p=>p.id===identity?.playerId),host=room?.hostId===identity?.playerId;
  return <main className="app online"><header><div className="eyebrow">PEN BATTLE · ONLINE</div><h1>在线弹笔大战</h1><p>{connected?'已连接服务器':'正在连接…'}</p></header>
+ {identity&&<button className="leave-room-button" disabled={busy} onClick={()=>void leave()}>离开房间</button>}
  {error&&<div className="connection-error" role="alert">{error}</div>}
  {!room||!identity?<section className="mode-select"><label className="online-field">昵称<input value={name} maxLength={20} onChange={e=>setName(e.target.value)} placeholder="1–20 个文字或数字" autoComplete="nickname"/></label><label className="online-field">玩法<select value={selectedMode} onChange={e=>setSelectedMode(e.target.value as GameMode)}><option value="classic">经典淘汰</option><option value="evolution">进化竞技场</option></select></label><label className="online-field">房间人数<select aria-label="房间人数" value={maxPlayers} onChange={e=>setMaxPlayers(Number(e.target.value) as RoomCapacity)}><option value={2}>2 Players · 2 人</option><option value={3}>3 Players · 3 人</option><option value={4}>4 Players · 4 人</option></select></label><button disabled={!connected||busy||!name.trim()} onClick={()=>void join(true)}>创建房间</button><div className="join-divider">或加入朋友的房间</div><label className="online-field">房间码<input value={code} maxLength={6} onChange={e=>setCode(e.target.value.toUpperCase())} placeholder="ABC234" autoCapitalize="characters"/></label><button disabled={!connected||busy||code.length!==6||!name.trim()} onClick={()=>void join(false)}>加入房间</button><p className="subtle">无需注册。重连身份仅保存在此浏览器，请勿清除站点数据。</p></section>:<>
  <section className="room-lobby"><div className="room-code">房间 <strong>{room.code}</strong></div><button className="secondary" onClick={()=>{void (async()=>{try{if(!navigator.clipboard)throw new Error();await navigator.clipboard.writeText(invite);setCopyText('已复制');}catch{setCopyText('请长按下方链接复制');}})();}}>{copyText}</button><input className="invite-link" readOnly value={invite} aria-label="房间邀请链接" onFocus={e=>e.target.select()}/>
@@ -61,5 +69,5 @@ export default function OnlinePlay({onExit}:{onExit:()=>void}){
  <div className="notifications" aria-live="polite">{frame.state.notices.slice(-2).map(n=><div className={`notice ${n.kind}`} key={n.id}>{n.text}</div>)}</div>
  <button className="shake-button" disabled={!connected||busy||aiming||room.paused||frame.state.currentPlayer!==identity.playerId||!frame.state.canShake} onClick={()=>void send({kind:'shake'})}>握笔震桌 · 代替本回合弹笔</button><p className="subtle">桌边 5% 内所有笔都会掉落。进化模式自落降一级，历史分数保留。</p><p className="subtle">{frame.state.phase==='aiming'?'按住自己的笔，向后拖动并释放。':`服务器正在处理：${frame.state.phase}`}</p></section>}
  </>}
- <button className="text-button" onClick={()=>void leave()}>离开在线游戏</button><footer>服务器权威判定 · 无需账号</footer></main>;
+ <button className={identity?"leave-room-button":"text-button"} disabled={busy} onClick={()=>void leave()}>{identity?'离开房间':'返回主菜单'}</button><footer>服务器权威判定 · 无需账号</footer></main>;
 }

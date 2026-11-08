@@ -59,3 +59,5 @@ Render's [Free plan documentation](https://render.com/docs/free) describes idle 
 Rooms are intentionally in memory. Redeploying, sleeping or restarting can discard all games and reconnect credentials. Clients receive a shutdown message, reconnect with backoff, and get a clear missing/expired identity error if their old room is gone. Multiple production instances are unsupported.
 
 V2.3 also publishes `/releases/v2.3.json`. Compare its contents and the homepage asset hashes with the local build after pushing, then exercise room capacities through the live server. This distinguishes the new release from an older healthy instance.
+
+V2.3.1 fixes immediate departure/expiry cleanup without increasing the five-room limit. Verify `/releases/v2.3.1.json` and run `SMOKE_URL=https://pen-battle.onrender.com node scripts/lifecycle-smoke.mjs`; this checks actual 60-second grace expiry and sequential room recreation. See [lifecycle policy and tests](v2.3.1-room-cleanup.md).
