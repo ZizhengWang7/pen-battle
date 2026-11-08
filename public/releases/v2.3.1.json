@@ -1,5 +1,6 @@
 {
   "release": "2.3.1",
+  "verificationRevision": 2,
   "roomCleanup": "immediate-explicit-leave-and-expired-reservations",
   "graceMs": 60000
 }
